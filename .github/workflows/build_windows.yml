@@ -1,0 +1,25 @@
+name: Build Flutter Windows # 必须有这个名称，否则GitHub不识别为可运行工作流
+
+on:
+  workflow_dispatch: # 保留手动触发
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: stable
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build release
+        run: flutter build windows --release
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter_windows_release
+          path: build/windows/x64/runner/Release
