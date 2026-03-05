@@ -1,4 +1,5 @@
 name: Build Flutter Windows
+<<<<<<< HEAD
 on:
   # 推送到 main 分支自动构建（彻底避开手动点击报错）
   push:
