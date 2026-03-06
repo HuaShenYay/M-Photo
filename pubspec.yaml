@@ -18,6 +18,7 @@ dependencies:
   
   # Image processing
   image: ^4.3.0
+  exif: ^3.3.0
   
   # State management
   provider: ^6.1.2

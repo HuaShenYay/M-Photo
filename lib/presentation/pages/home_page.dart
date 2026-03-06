@@ -7,7 +7,7 @@ import '../widgets/frame_selector.dart';
 import '../widgets/exif_display_panel.dart';
 import '../widgets/export_settings_dialog.dart';
 
-/// 主页面
+/// 主页面 - 性能优化版
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -21,6 +21,7 @@ class HomePage extends StatelessWidget {
             builder: (context, state, _) {
               if (!state.hasImage) return const SizedBox.shrink();
               return Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
@@ -96,8 +97,8 @@ class HomePage extends StatelessWidget {
           Text(
             '支持 JPG / PNG / WebP',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
@@ -117,6 +118,8 @@ class HomePage extends StatelessWidget {
           flex: 3,
           child: ImagePreviewWidget(
             imageBytes: state.previewBytes ?? state.currentImage!.bytes,
+            watermarkConfig: state.watermarkConfig,
+            onLayerDragged: state.updateLayerPosition,
           ),
         ),
         Expanded(
@@ -128,11 +131,9 @@ class HomePage extends StatelessWidget {
               children: [
                 WatermarkConfigPanel(
                   config: state.watermarkConfig,
-                  onTextChanged: state.updateWatermarkText,
-                  onPositionChanged: state.updateWatermarkPosition,
-                  onFontSizeChanged: state.updateWatermarkFontSize,
-                  onColorChanged: state.updateWatermarkColor,
-                  onOpacityChanged: state.updateWatermarkOpacity,
+                  onTemplateChanged: state.selectTemplate,
+                  onEnabledChanged: state.toggleWatermarkEnabled,
+                  onAddLayer: state.addLayer,
                 ),
                 const SizedBox(height: 16),
                 FrameSelector(

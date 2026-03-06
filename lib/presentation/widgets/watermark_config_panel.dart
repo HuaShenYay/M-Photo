@@ -1,34 +1,25 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../domain/entities/entities.dart';
 
-/// 水印配置面板
+/// 水印配置面板 - 模板选择模式
 class WatermarkConfigPanel extends StatelessWidget {
   final WatermarkConfig config;
-  final ValueChanged<String> onTextChanged;
-  final ValueChanged<WatermarkPosition> onPositionChanged;
-  final ValueChanged<double> onFontSizeChanged;
-  final ValueChanged<Color> onColorChanged;
-  final ValueChanged<double> onOpacityChanged;
+  final Function(String templateId) onTemplateChanged;
+  final Function(bool enabled) onEnabledChanged;
+  final Function(WatermarkLayer)? onAddLayer;
+  final VoidCallback? onImportImage;
 
   const WatermarkConfigPanel({
     super.key,
     required this.config,
-    required this.onTextChanged,
-    required this.onPositionChanged,
-    required this.onFontSizeChanged,
-    required this.onColorChanged,
-    required this.onOpacityChanged,
+    required this.onTemplateChanged,
+    required this.onEnabledChanged,
+    this.onAddLayer,
+    this.onImportImage,
   });
-
-  static const List<Color> presetColors = [
-    Colors.white,
-    Colors.black,
-    Color(0xFF6750A4),
-    Colors.red,
-    Colors.green,
-    Colors.blue,
-    Colors.yellow,
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -38,127 +29,159 @@ class WatermarkConfigPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '文字水印',
-              style: Theme.of(context).textTheme.titleMedium,
+            // 标题和开关
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '水印模板',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Switch(
+                  value: config.enabled,
+                  onChanged: onEnabledChanged,
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            // 文字输入
-            TextField(
-              decoration: const InputDecoration(
-                labelText: '水印文字',
-                hintText: '输入水印内容',
-                border: OutlineInputBorder(),
+            
+            // 模板选择
+            if (config.enabled) ...[
+              Text(
+                '选择模板',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              onChanged: onTextChanged,
-            ),
-            const SizedBox(height: 16),
-            // 位置选择
-            Text(
-              '位置',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: WatermarkPosition.values.map((pos) {
-                final isSelected = config.position == pos;
-                return ChoiceChip(
-                  label: Text(_getPositionLabel(pos)),
-                  selected: isSelected,
-                  onSelected: (_) => onPositionChanged(pos),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            // 字体大小
-            Row(
-              children: [
-                const Text('字体大小'),
-                Expanded(
-                  child: Slider(
-                    value: config.fontSize,
-                    min: 12,
-                    max: 72,
-                    divisions: 60,
-                    label: config.fontSize.round().toString(),
-                    onChanged: onFontSizeChanged,
-                  ),
-                ),
-                SizedBox(
-                  width: 40,
-                  child: Text('${config.fontSize.round()}'),
-                ),
-              ],
-            ),
-            // 透明度
-            Row(
-              children: [
-                const Text('透明度'),
-                Expanded(
-                  child: Slider(
-                    value: config.opacity,
-                    min: 0.1,
-                    max: 1.0,
-                    divisions: 9,
-                    label: '${(config.opacity * 100).round()}%',
-                    onChanged: onOpacityChanged,
-                  ),
-                ),
-                SizedBox(
-                  width: 40,
-                  child: Text('${(config.opacity * 100).round()}%'),
-                ),
-              ],
-            ),
-            // 颜色选择
-            Text(
-              '颜色',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: presetColors.map((color) {
-                final isSelected = config.color.toARGB32() == color.toARGB32();
-                return GestureDetector(
-                  onTap: () => onColorChanged(color),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.grey,
-                        width: isSelected ? 3 : 1,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+              const SizedBox(height: 8),
+              _buildTemplateSelector(context),
+              const SizedBox(height: 16),
+              
+              // 模板描述
+              _buildTemplateDescription(context),
+              const SizedBox(height: 16),
+              
+              // 自定义操作按钮
+              _buildCustomActions(context),
+            ],
           ],
         ),
       ),
     );
   }
 
-  String _getPositionLabel(WatermarkPosition position) {
-    switch (position) {
-      case WatermarkPosition.topLeft:
-        return '左上';
-      case WatermarkPosition.topRight:
-        return '右上';
-      case WatermarkPosition.bottomLeft:
-        return '左下';
-      case WatermarkPosition.bottomRight:
-        return '右下';
-      case WatermarkPosition.center:
-        return '居中';
-    }
+  Widget _buildTemplateSelector(BuildContext context) {
+    final templates = WatermarkTemplates.presets;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: templates.map((template) {
+        final isSelected = config.templateId == template.id;
+        return ChoiceChip(
+          label: Text(template.name),
+          selected: isSelected,
+          onSelected: (_) => onTemplateChanged(template.id),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTemplateDescription(BuildContext context) {
+    final template = WatermarkTemplates.getById(config.templateId);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            template.description,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '图层数量: ${template.layers.length}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomActions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '自定义',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            // 添加文字图层按钮
+            ActionChip(
+              avatar: const Icon(Icons.text_fields, size: 18),
+              label: const Text('添加文字'),
+              onPressed: () {
+                if (onAddLayer != null) {
+                  final newLayer = WatermarkLayer(
+                    type: WatermarkLayerType.text,
+                    id: 'text_${DateTime.now().millisecondsSinceEpoch}',
+                    text: '新文字',
+                    x: 0.5,
+                    y: 0.5,
+                    fontSize: 24,
+                    color: const Color(0xFFFFFFFF),
+                    opacity: 0.8,
+                  );
+                  onAddLayer!(newLayer);
+                }
+              },
+            ),
+            // 导入图片按钮
+            ActionChip(
+              avatar: const Icon(Icons.image, size: 18),
+              label: const Text('导入图片'),
+              onPressed: onImportImage,
+            ),
+            // 添加EXIF图层按钮
+            ActionChip(
+              avatar: const Icon(Icons.info_outline, size: 18),
+              label: const Text('添加EXIF'),
+              onPressed: () {
+                if (onAddLayer != null) {
+                  final newLayer = WatermarkLayer(
+                    type: WatermarkLayerType.exif,
+                    id: 'exif_${DateTime.now().millisecondsSinceEpoch}',
+                    x: 0.5,
+                    y: 0.8,
+                    fontSize: 14,
+                    color: const Color(0xFFFFFFFF),
+                    opacity: 0.9,
+                    showExifModel: true,
+                    showExifAperture: true,
+                    showExifIso: true,
+                  );
+                  onAddLayer!(newLayer);
+                }
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '提示：拖拽预览图中的水印可调整位置',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
   }
 }

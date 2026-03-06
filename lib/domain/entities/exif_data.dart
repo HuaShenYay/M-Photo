@@ -25,7 +25,10 @@ class ExifData {
       cameraModel != null ||
       aperture != null ||
       shutterSpeed != null ||
-      iso != null;
+      iso != null ||
+      dateTime != null ||
+      width != null ||
+      height != null;
 
   String get cameraInfo {
     if (cameraMake != null && cameraModel != null) {
